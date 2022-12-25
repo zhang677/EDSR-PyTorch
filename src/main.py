@@ -23,10 +23,13 @@ def main():
             _model = model.Model(args, checkpoint)
             _loss = loss.Loss(args, checkpoint) if not args.test_only else None
             t = Trainer(args, loader, _model, _loss, checkpoint)
+            total_timer = utility.timer()
+            total_timer.tic()
             while not t.terminate():
                 t.train()
                 t.test()
-
+            total_timer.hold()
+            print("Total training time: {:.1f}s".format(total_timer.release()))
             checkpoint.done()
 
 if __name__ == '__main__':

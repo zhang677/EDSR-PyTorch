@@ -21,7 +21,6 @@ class DIV2K(srdata.SRData):
         names_hr, names_lr = super(DIV2K, self)._scan()
         names_hr = names_hr[self.begin - 1:self.end]
         names_lr = [n[self.begin - 1:self.end] for n in names_lr]
-
         return names_hr, names_lr
 
     def _set_filesystem(self, dir_data):

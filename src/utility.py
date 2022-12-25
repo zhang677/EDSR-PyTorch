@@ -90,6 +90,17 @@ class checkpoint():
         self.plot_psnr(epoch)
         trainer.optimizer.save(self.dir)
         torch.save(self.log, self.get_path('psnr_log.pt'))
+    
+    def get_path_canvas(self, dir, *subdir):
+        return os.path.join(dir, *subdir)
+
+    def save_canvas(self, trainer, epoch, dir, is_best=False):
+        trainer.model.save(self.get_path_canvas(dir, 'model'), epoch, is_best=is_best)
+        trainer.loss.save(dir)
+        trainer.loss.plot_loss(dir, epoch)
+        
+        trainer.optimizer.save(dir)
+        torch.save(self.log, self.get_path_canvas(dir, 'psnr_log.pt'))
 
     def add_log(self, log):
         self.log = torch.cat([self.log, log])

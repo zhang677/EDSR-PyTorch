@@ -26,6 +26,7 @@ class Trainer():
         self.error_last = 1e8
 
     def train(self):
+        # Train one epoch
         self.loss.step()
         epoch = self.optimizer.get_last_epoch() + 1
         lr = self.optimizer.get_lr()
@@ -143,4 +144,7 @@ class Trainer():
         else:
             epoch = self.optimizer.get_last_epoch() + 1
             return epoch >= self.args.epochs
+
+    def save_canvas(self):
+        
 

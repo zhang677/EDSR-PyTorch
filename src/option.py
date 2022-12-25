@@ -19,7 +19,7 @@ parser.add_argument('--seed', type=int, default=1,
                     help='random seed')
 
 # Data specifications
-parser.add_argument('--dir_data', type=str, default='../../../dataset',
+parser.add_argument('--dir_data', type=str, default='/home/nfs_data/datasets',
                     help='dataset directory')
 parser.add_argument('--dir_demo', type=str, default='../test',
                     help='demo image directory')
@@ -142,6 +142,41 @@ parser.add_argument('--save_results', action='store_true',
                     help='save output results')
 parser.add_argument('--save_gt', action='store_true',
                     help='save low-resolution and high-resolution images together')
+
+parser.add_argument('--canvas-seed', default='pure', type=str,
+                    help='Canvas seed settings (one of "global" and "pure"), '
+                            '"global" means same with training, "pure" means purely random '
+                            '(only for search)')
+parser.add_argument('--canvas-rounds', default=0, type=int,
+                    help='Search rounds for Canvas (only for search)')
+
+parser.add_argument('--canvas-bmm-pct', default=0.1, type=float,
+                    help='Possibility to forcibly contain BMM (attention-like, only for search)')
+
+parser.add_argument('--canvas-min-receptive-size', default=1, type=int,
+                    help='Minimum receptive size (only for search)')
+
+parser.add_argument('--canvas-sampling-workers', default=10, type=int,
+                    help='Workers to use for sampling (only for search)')
+
+parser.add_argument('--input-size', default=(3, 48, 48), nargs=3, type=int, metavar='N N N',
+                    help='Input all image dimensions (d h w, e.g. --input-size 3 48 48, '
+                             'model default if none)')
+
+parser.add_argument('--canvas-log-dir', default='/home/nfs_data/zhanggh/EDSR-PyTorch/experiment/Canvas', type=str,
+                    help='Canvas logging directory')
+
+parser.add_argument('--canvas-oss-bucket', default='', type=str,
+                        help='Log into OSS buckets')
+
+parser.add_argument('--canvas-min-macs', default=0, type=float,
+                    help='Minimum MACs for searched kernels (in G-unit, only for search)')
+parser.add_argument('--canvas-max-macs', default=0, type=float,
+                    help='Maximum MACs for searched kernels (in G-unit, only for search)')
+parser.add_argument('--canvas-min-params', default=0, type=float,
+                    help='Minimum params for searched kernels (in M-unit, only for search)')
+parser.add_argument('--canvas-max-params', default=0, type=float,
+                    help='Maximum params for searched kernels (in M-unit, only for search)')
 
 args = parser.parse_args()
 template.set_template(args)
