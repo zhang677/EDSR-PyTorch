@@ -178,6 +178,12 @@ parser.add_argument('--canvas-min-params', default=0, type=float,
 parser.add_argument('--canvas-max-params', default=0, type=float,
                     help='Maximum params for searched kernels (in M-unit, only for search)')
 
+parser.add_argument('--canvas-epoch-pruning-milestone', default='', type=str,
+                    help='Epoch accuracy milestone pruning')
+
+parser.add_argument('--canvas-first-epoch-pruning-milestone', default='', type=str,
+                    help='First epoch milestone pruning')
+
 args = parser.parse_args()
 template.set_template(args)
 

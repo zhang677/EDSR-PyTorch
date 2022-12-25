@@ -132,18 +132,47 @@ def train_canvas(args, t: Trainer, search_mode: bool = False, proxy_mode: bool =
     logger.info('Begin training ...')
 
     # Resume from checkpoint is handled initialization of trainer
+    # if not args.save:
+    #   args.save = now
+    # If args.load is given, trainer will load optimizer from given folder
+    # if self.args.load != '':
+    #   self.optimizer.load(ckp.dir, epoch=len(ckp.log))
+    # Therefore, we **must** assgin args.save with no value.
+    start_epoch = len(t.ckp.log)
+    sched_epochs = t.args.epochs # scheduler_class = lrs.MultiStepLR. Not cycle based schedulers https://github.com/rwightman/pytorch-image-models/blob/main/timm/scheduler/scheduler_factory.py#L196
+
 
     # Checkpoint saver.
+    # Trainer has a "save" function in the "test" function, so there's no need to create a saver here
+    # Trainer will record the best result and the corresponding model in self.ckp.log
     best_metric, best_epoch = None, None
-    saver, output_dir = None, None
-    if not search_mode:
-        name = '-'.join([
-            datetime.now().strftime("%Y%m%d-%H%M%S"),
-            args.model
-        ])
-        output_dir = args.output if args.output else '/home/nfs_data/zhanggh/EDSR-PyTorch/experiment/Canvas/output/train'
-        output_dir = os.path.join(output_dir, name)
-        t.ckp.save_canvas(t, )
+    
+    
+    # Pruning after epochs.
+    overall_pruning_milestones = None
+    if args.canvas_epoch_pruning_milestone:
+        with open(args.canvas_epoch_pruning_milestone) as f:
+            overall_pruning_milestones = json.load(f)
+            logger.info(f'Milestones (overall epochs) loaded: {overall_pruning_milestones}')
+    
+    # Iterate over epochs.
+    all_train_metrics, all_eval_metrics = [], []
+    for epoch in range(start_epoch, sched_epochs):
+        if hasattr(t.loader_train.sampler, 'set_epoch'):
+            t.loader_train.sampler.set_epoch(epoch)
+        
+        # Pruner.
+        in_epoch_pruning_milestones = dict()
+        if epoch == 0 and search_mode and not proxy_mode and args.canvas_first_epoch_pruning_milestone:
+            with open(args.canvas_first_epoch_pruning_milestone) as f:
+                in_epoch_pruning_milestones = json.load(f)
+                logger.info(f'Milestones (first-epoch loss) loaded: {in_epoch_pruning_milestones}')
+        
+        # Train.
+        
+        
+
+
         
     pass
     
@@ -213,6 +242,9 @@ def canvas_main():
                     if loader.loader_train and loader.loader_test:
                         logger.info('Training on proxy dataset ...')
                         t = Trainer(args, loader, _model, _loss, checkpoint)
+                except RuntimeError as ex:
+                    exception_info = f'{ex}'
+                    logger.warning(f'Exception: {exception_info}')
 
 
             total_timer = utility.timer()

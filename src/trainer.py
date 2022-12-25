@@ -145,6 +145,8 @@ class Trainer():
             epoch = self.optimizer.get_last_epoch() + 1
             return epoch >= self.args.epochs
 
-    def save_canvas(self):
-        
+    def save_canvas(self, dir):
+        epoch = self.optimizer.get_last_epoch()
+        best = self.ckp.log.max(0)
+        self.ckp.save(self, epoch, (best[1][0, 0] + 1 == epoch))
 
