@@ -64,3 +64,6 @@ target/
 *.txt
 *.swp
 .vscode
+
+# Canvas
+src/canvas_torch_cached/
