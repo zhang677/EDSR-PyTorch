@@ -102,6 +102,12 @@ class Loss(nn.modules.loss._Loss):
 
         return ''.join(log)
 
+    def get_loss(self, batch, type):
+        n_samples = batch + 1
+        for l, c in zip(self.loss, self.log[-1]):
+            if l['type'] == type:
+                return c / n_samples
+
     def plot_loss(self, apath, epoch):
         axis = np.linspace(1, epoch, epoch)
         for i, l in enumerate(self.loss):

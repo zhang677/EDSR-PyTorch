@@ -128,7 +128,7 @@ parser.add_argument('--skip_threshold', type=float, default='1e8',
                     help='skipping batch that has large error')
 
 # Log specifications
-parser.add_argument('--save', type=str, default='test',
+parser.add_argument('--save', type=str, default='',
                     help='file name to save')
 parser.add_argument('--load', type=str, default='',
                     help='file name to load')
@@ -163,7 +163,7 @@ parser.add_argument('--input-size', default=(3, 48, 48), nargs=3, type=int, meta
                     help='Input all image dimensions (d h w, e.g. --input-size 3 48 48, '
                              'model default if none)')
 
-parser.add_argument('--canvas-log-dir', default='/home/nfs_data/zhanggh/EDSR-PyTorch/experiment/Canvas', type=str,
+parser.add_argument('--canvas-log-dir', default='', type=str,
                     help='Canvas logging directory')
 
 parser.add_argument('--canvas-oss-bucket', default='', type=str,
@@ -184,6 +184,13 @@ parser.add_argument('--canvas-epoch-pruning-milestone', default='', type=str,
 parser.add_argument('--canvas-first-epoch-pruning-milestone', default='', type=str,
                     help='First epoch milestone pruning')
 
+parser.add_argument('--forbid-eval-nan', action='store_true', help='Whether to forbid NaN during evaluation')
+
+parser.add_argument('--canvas-proxy-threshold', default=70.0, type=float,
+                    help='Proxy dataset threshold for real training (only for search)')
+
+parser.add_argument('--canvas-weight-sharing', action='store_true',
+                    help='Enable weight sharing with the best model in the search')
 args = parser.parse_args()
 template.set_template(args)
 

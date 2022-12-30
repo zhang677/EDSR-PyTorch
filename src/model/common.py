@@ -3,11 +3,15 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import canvas
 
 def default_conv(in_channels, out_channels, kernel_size, bias=True):
     return nn.Conv2d(
         in_channels, out_channels, kernel_size,
         padding=(kernel_size//2), bias=bias)
+
+def default_placeholder(in_channels, out_channels, kernel_size, bias=True):
+    return canvas.Placeholder()
 
 class MeanShift(nn.Conv2d):
     def __init__(

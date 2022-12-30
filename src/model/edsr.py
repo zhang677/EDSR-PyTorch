@@ -11,11 +11,14 @@ url = {
     'r32f256x4': 'https://cv.snu.ac.kr/research/EDSR/models/edsr_x4-4f62e9ef.pt'
 }
 
-def make_model(args, parent=False):
-    return EDSR(args)
+def make_model(args, placeholder, parent=False):
+    if placeholder == True:
+        return EDSR(args, common.default_placeholder)
+    else:
+        return EDSR(args, common.default_conv)
 
 class EDSR(nn.Module):
-    def __init__(self, args, conv=common.default_conv):
+    def __init__(self, args, block=common.default_conv):
         super(EDSR, self).__init__()
 
         n_resblocks = args.n_resblocks
@@ -30,6 +33,7 @@ class EDSR(nn.Module):
             self.url = None
         self.sub_mean = common.MeanShift(args.rgb_range)
         self.add_mean = common.MeanShift(args.rgb_range, sign=1)
+        conv = common.default_conv
 
         # define head module
         m_head = [conv(args.n_colors, n_feats, kernel_size)]
@@ -37,7 +41,7 @@ class EDSR(nn.Module):
         # define body module
         m_body = [
             common.ResBlock(
-                conv, n_feats, kernel_size, act=act, res_scale=args.res_scale
+                block, n_feats, kernel_size, act=act, res_scale=args.res_scale
             ) for _ in range(n_resblocks)
         ]
         m_body.append(conv(n_feats, n_feats, kernel_size))
@@ -53,7 +57,7 @@ class EDSR(nn.Module):
         self.tail = nn.Sequential(*m_tail)
 
     def forward(self, x):
-        print(f"Input: {x.shape}")
+        #print(f"Input: {x.shape}")
         x = self.sub_mean(x)
         x = self.head(x)
 
@@ -63,7 +67,7 @@ class EDSR(nn.Module):
         x = self.tail(res)
         x = self.add_mean(x)
 
-        print(f"Output: {x.shape}")
+        #print(f"Output: {x.shape}")
 
         return x 
 

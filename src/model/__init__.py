@@ -6,8 +6,10 @@ import torch.nn as nn
 import torch.nn.parallel as P
 import torch.utils.model_zoo
 
+import canvas
+
 class Model(nn.Module):
-    def __init__(self, args, ckp):
+    def __init__(self, args, ckp, placeholder=False):
         super(Model, self).__init__()
         print('Making model...')
 
@@ -23,7 +25,8 @@ class Model(nn.Module):
         self.save_models = args.save_models
 
         module = import_module('model.' + args.model.lower())
-        self.model = module.make_model(args).to(self.device)
+        self.model = module.make_model(args, placeholder).to(self.device)
+        
         if args.precision == 'half':
             self.model.half()
 
