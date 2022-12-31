@@ -155,7 +155,7 @@ class Trainer():
         # second order is False for MultiStepLR
         self.loss.step()
         epoch = self.optimizer.get_last_epoch() + 1
-        
+        lr = self.optimizer.get_lr()
 
         self.ckp.write_log(
             '[Epoch {}]\tLearning rate: {:.2e}'.format(epoch, Decimal(lr))

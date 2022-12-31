@@ -28,12 +28,6 @@ _exp_logger = logging.getLogger()
 _exp_logger.setLevel(logging.INFO)
 oss_try_times = 10
 
-def get_model(model):
-    # The output channel of EDSR is args.n_colors=3
-    # Input shape is [16, 3, 48, 48] = [B, C, H, W]
-    # Input shape is [16, 3, 96, 96] = [B, C, H, W] (patch_size=96)
-    pass
-
 def get_logger():
     global _exp_logger
     return _exp_logger
@@ -42,7 +36,27 @@ def get_oss_bucket():
     return oss2.Bucket(oss2.Auth('LTAI5tCx79brCnGXxKGTsAst', 'F0IVmA99YzX2x8LWkGrp8WBjVH9qsa'),
                        'oss-cn-hangzhou.aliyuncs.com', 'canvas-imagenet', connect_timeout=5)
 
-def save_log(args, kernel_pack, train_metrics, eval_metrics, extra):
+def get_model(_model, search_mode = False):
+    # The output channel of EDSR is args.n_colors=3
+    # Input shape is [16, 3, 48, 48] = [B, C, H, W]
+    # Input shape is [16, 3, 96, 96] = [B, C, H, W] (patch_size=96)
+    logger = get_logger()
+    example_input = torch.rand((1, ) + args.input_size).to(_model.device)
+    canvas.get_placeholders(_model.model, example_input)
+
+    # Replace kernel.
+    if not search_mode and args.canvas_kernel:
+        logger.info(f'Replacing kernel from {args.canvas_kernel}')
+        pack = canvas.KernelPack.load(args.canvas_kernel)
+        _model.model = canvas.replace(_model.model, pack.module, _model.device)
+    
+    macs, params = ptflops.get_model_complexity_info(_model.model, args.input_size, as_strings=True,
+                                                         print_per_layer_stat=False, verbose=False)
+    logger.info(f'MACs: {macs}, params: {params}')
+
+    return _model
+
+def save_log(kernel_pack, train_metrics, eval_metrics, extra):
     logger = get_logger()
     assert args.canvas_log_dir
     if kernel_pack:
@@ -110,8 +124,8 @@ def canvas_main():
     if args.data_test == ['video']:
         raise NotImplementedError
     else:          
-        _model = model.Model(args, checkpoint, placeholder=True)
-        example_input = torch.rand((3, 48, 48)).to(_model.device)
+        _model = get_model(model.Model(args, checkpoint, placeholder=True), search_mode=True)
+        example_input = torch.rand((1, ) + args.input_size).to(_model.device)
         canvas.seed(random.SystemRandom().randint(0, 0x7fffffff) if args.canvas_seed == 'pure' else args.seed)
         cpu_clone = deepcopy(_model.model).cpu()
 
@@ -121,7 +135,7 @@ def canvas_main():
             gc.collect()
             _model.model = deepcopy(cpu_clone).to(_model.device)
             if pack is not None:
-                canvas.replace(_model.model, pack.module, _model.device)
+                _model.model = canvas.replace(_model.model, pack.module, _model.device)
         
         current_best_score = 0
         round_range = range(args.canvas_rounds) if args.canvas_rounds > 0 else itertools.count()
@@ -144,7 +158,7 @@ def canvas_main():
                 g_macs, m_params = g_macs / 1e9, m_params / 1e6
             except RuntimeError as ex:
                 logger.info(f'Exception: {ex}')
-                save_log(args, None, None, None, {'exception': f'{ex}'})
+                save_log(None, None, None, {'exception': f'{ex}'})
                 continue
             logger.info(f'Sampled kernel hash: {hash(kernel_pack)}')
             logger.info(f'MACs: {g_macs} G, params: {m_params} M')
@@ -206,7 +220,7 @@ def canvas_main():
             extra = {'proxy_score': proxy_score, 'g_macs': g_macs, 'm_params': m_params}
             if exception_info:
                 extra['exception'] = exception_info
-            save_log(args, kernel_pack, train_metrics, eval_metrics, extra)
+            save_log(kernel_pack, train_metrics, eval_metrics, extra)
             checkpoint.done()
 
 

@@ -191,6 +191,9 @@ parser.add_argument('--canvas-proxy-threshold', default=70.0, type=float,
 
 parser.add_argument('--canvas-weight-sharing', action='store_true',
                     help='Enable weight sharing with the best model in the search')
+                    
+parser.add_argument('--canvas-kernel', default='', type=str,
+                        help='Path to the replaced kernel (only for training)')
 args = parser.parse_args()
 template.set_template(args)
 
