@@ -22,7 +22,6 @@ from copy import deepcopy
 import canvas
 
 torch.manual_seed(args.seed)
-checkpoint = utility.checkpoint(args)
 logging.basicConfig(level=logging.DEBUG)
 _exp_logger = logging.getLogger()
 _exp_logger.setLevel(logging.INFO)
@@ -123,7 +122,8 @@ def canvas_main():
     logger = get_logger()
     if args.data_test == ['video']:
         raise NotImplementedError
-    else:          
+    else:
+        checkpoint = utility.checkpoint(args)          
         _model = get_model(model.Model(args, checkpoint, placeholder=True), search_mode=True)
         example_input = torch.rand((1, ) + args.input_size).to(_model.device)
         canvas.seed(random.SystemRandom().randint(0, 0x7fffffff) if args.canvas_seed == 'pure' else args.seed)
@@ -151,7 +151,8 @@ def canvas_main():
                                     force_bmm_possibility=args.canvas_bmm_pct,
                                     min_receptive_size=args.canvas_min_receptive_size,
                                     num_primitive_range=(5, 40),
-                                    workers=args.canvas_sampling_workers)
+                                    workers=args.canvas_sampling_workers,
+                                    ensure_spatial_invariance=False)
                 restore_model_params_and_replace(kernel_pack)
                 g_macs, m_params = ptflops.get_model_complexity_info(_model.model, args.input_size,
                                                                 as_strings=False, print_per_layer_stat=False)
@@ -172,12 +173,12 @@ def canvas_main():
                             f'requirements do not satisfy')
                 continue
             
-            # Train.
             loader = data.Data(args)
             _loss = loss.Loss(args, checkpoint) if not args.test_only else None
+            # Train.
             proxy_score, train_metrics, eval_metrics, exception_info = 0, None, None, None
-            proxy_train_loader = loader.loader_train
-            proxy_eval_loader = loader.loader_test
+            proxy_train_loader = None #loader.loader_train
+            proxy_eval_loader = None #loader.loader_test
             try:
                 if proxy_train_loader and proxy_eval_loader:
                     logger.info('Training on proxy dataset ...')
@@ -195,7 +196,7 @@ def canvas_main():
                         logger.info(f'Under proxy threshold {args.canvas_proxy_threshold}, skip main dataset training')
                         continue
                     # No scale
-                
+                t = Trainer(args, loader, _model, _loss, checkpoint)
                 logger.info('Training on main dataset ...')
                 train_metrics, eval_metrics = \
                     t.train_canvas(logger, search_mode=True, proxy_mode=False)
@@ -222,6 +223,8 @@ def canvas_main():
                 extra['exception'] = exception_info
             save_log(kernel_pack, train_metrics, eval_metrics, extra)
             checkpoint.done()
+            checkpoint = utility.checkpoint(args)
+        checkpoint.done()
 
 
 if __name__ == '__main__':

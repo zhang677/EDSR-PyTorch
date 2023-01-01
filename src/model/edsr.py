@@ -25,7 +25,7 @@ class EDSR(nn.Module):
         n_feats = args.n_feats
         kernel_size = 3 
         scale = args.scale[0]
-        act = nn.ReLU(True)
+        act = nn.ReLU
         url_name = 'r{}f{}x{}'.format(n_resblocks, n_feats, scale)
         if url_name in url:
             self.url = url[url_name]
@@ -39,11 +39,15 @@ class EDSR(nn.Module):
         m_head = [conv(args.n_colors, n_feats, kernel_size)]
         
         # define body module
-        m_body = [
-            common.ResBlock(
-                block, n_feats, kernel_size, act=act, res_scale=args.res_scale
-            ) for _ in range(n_resblocks)
-        ]
+        # Only replace the convolution in m_body
+        if args.canvas_replace_block:
+            m_body = [common.ResBlockPlaceholder(act=act, res_scale=args.res_scale) for _ in range(n_resblocks)]
+        else:
+            m_body = [
+                common.ResBlock(
+                    block, n_feats, kernel_size, act=act, res_scale=args.res_scale
+                ) for _ in range(n_resblocks)
+            ]
         m_body.append(conv(n_feats, n_feats, kernel_size))
 
         # define tail module
@@ -61,6 +65,8 @@ class EDSR(nn.Module):
         x = self.sub_mean(x)
         x = self.head(x)
 
+        #if x.requires_grad is False:
+        #    print(x.shape)
         res = self.body(x)
         res += x
 

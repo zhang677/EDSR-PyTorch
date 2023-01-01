@@ -6,8 +6,6 @@ import torch.nn as nn
 import torch.nn.parallel as P
 import torch.utils.model_zoo
 
-import canvas
-
 class Model(nn.Module):
     def __init__(self, args, ckp, placeholder=False):
         super(Model, self).__init__()

@@ -27,7 +27,7 @@ parser.add_argument('--data_train', type=str, default='DIV2K',
                     help='train dataset name')
 parser.add_argument('--data_test', type=str, default='DIV2K',
                     help='test dataset name')
-parser.add_argument('--data_range', type=str, default='1-800/801-810',
+parser.add_argument('--data_range', type=str, default='1-800/801-900',
                     help='train/test data range')
 parser.add_argument('--ext', type=str, default='sep',
                     help='dataset file extension')
@@ -168,14 +168,15 @@ parser.add_argument('--canvas-log-dir', default='', type=str,
 
 parser.add_argument('--canvas-oss-bucket', default='', type=str,
                         help='Log into OSS buckets')
-
-parser.add_argument('--canvas-min-macs', default=0, type=float,
+ori_macs = 3.17
+ori_params = 1.37
+parser.add_argument('--canvas-min-macs', default=0.3 * ori_macs, type=float,
                     help='Minimum MACs for searched kernels (in G-unit, only for search)')
-parser.add_argument('--canvas-max-macs', default=0, type=float,
+parser.add_argument('--canvas-max-macs', default=2 * ori_macs, type=float,
                     help='Maximum MACs for searched kernels (in G-unit, only for search)')
-parser.add_argument('--canvas-min-params', default=0, type=float,
+parser.add_argument('--canvas-min-params', default=0.3 * ori_params, type=float,
                     help='Minimum params for searched kernels (in M-unit, only for search)')
-parser.add_argument('--canvas-max-params', default=0, type=float,
+parser.add_argument('--canvas-max-params', default=2 * ori_params, type=float,
                     help='Maximum params for searched kernels (in M-unit, only for search)')
 
 parser.add_argument('--canvas-epoch-pruning-milestone', default='', type=str,
@@ -194,6 +195,10 @@ parser.add_argument('--canvas-weight-sharing', action='store_true',
                     
 parser.add_argument('--canvas-kernel', default='', type=str,
                         help='Path to the replaced kernel (only for training)')
+
+parser.add_argument('--canvas-replace-block', action='store_true',
+                    help='Replace the whole resblock')
+
 args = parser.parse_args()
 template.set_template(args)
 

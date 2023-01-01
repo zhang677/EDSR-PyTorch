@@ -45,7 +45,6 @@ class Trainer():
             lr, hr = self.prepare(lr, hr)
             timer_data.hold()
             timer_model.tic()
-
             self.optimizer.zero_grad()
             sr = self.model(lr, 0)
             loss = self.loss(sr, hr)
@@ -154,7 +153,7 @@ class Trainer():
     def train_one_epoch(self, logger, pruning_milestones):
         # second order is False for MultiStepLR
         self.loss.step()
-        epoch = self.optimizer.get_last_epoch() + 1
+        epoch = self.optimizer.get_last_epoch()
         lr = self.optimizer.get_lr()
 
         self.ckp.write_log(
@@ -163,7 +162,7 @@ class Trainer():
         self.loss.start_log()
         self.model.train()
 
-        num_updates = epoch * len(self.loader_train)
+        num_updates = (epoch+1) * len(self.loader_train)
         last_idx = len(self.loader_train) - 1
 
         timer_data, timer_batch = utility.timer(), utility.timer()
@@ -190,6 +189,8 @@ class Trainer():
 
             if batch == last_idx or (batch + 1) % self.args.print_every == 0:
                 lr = self.optimizer.get_lr()
+                tb = timer_batch.release()
+                td = timer_data.release()
                 logger.info(
                     'Train: {} [{:>4d}/{} ({:>3.0f}%)]  '
                     'Loss: {}  '
@@ -200,9 +201,15 @@ class Trainer():
                         batch, len(self.loader_train),
                         100. * batch / last_idx,
                         self.loss.display_loss(batch),
-                        timer_batch.release(),
+                        tb,
                         lr,
-                        timer_data.release()))
+                        td))
+                self.ckp.write_log('[{}/{}]\t{}\t{:.1f}+{:.1f}s'.format(
+                    (batch + 1) * self.args.batch_size,
+                    len(self.loader_train.dataset),
+                    self.loss.display_loss(batch),
+                    tb,
+                    td), verbose=False)
                 loss_float = self.loss.get_loss(batch, 'L1')
                 progress = '{:.0f}'.format(100. * batch / last_idx)
                 if pruning_milestones and progress in pruning_milestones and \
@@ -217,7 +224,8 @@ class Trainer():
         self.error_last = self.loss.log[-1, -1]
         self.optimizer.schedule()
         
-        return OrderedDict([('loss', loss_float)])
+        return OrderedDict([('loss', loss_float.item())])
+
 
     def validate(self, logger):
         torch.set_grad_enabled(False)
@@ -230,7 +238,6 @@ class Trainer():
         )
         self.model.eval()
 
-        last_idx = len(self.loader_test) - 1
         timer_test = utility.timer()
         if self.args.save_results: self.ckp.begin_background()
         for idx_data, d in enumerate(self.loader_test):
@@ -249,23 +256,32 @@ class Trainer():
                         save_list.extend([lr, hr])
                     
                     # save the picture
-                    if self.args.sava_results:
+                    if self.args.save_results:
                         self.ckp.save_results(d, filename[0], save_list, scale)
-                
+
                 self.ckp.log[-1, idx_data, idx_scale] /= len(d)
                 best = self.ckp.log.max(0)
                 best_psnr = best[0][idx_data, idx_scale]
-                if idx_data == last_idx or (idx_data + 1) % self.args.print_every== 0:
-                    logger.info(
-                        '[{} x{}]\tPSNR: {:.3f} (Best: {:.3f} @epoch {} Time: {:.2f})'.format(
-                            d.dataset.name,
-                            scale,
-                            self.ckp.log[-1, idx_data, idx_scale],
-                            best_psnr,
-                            best[1][idx_data, idx_scale] + 1,
-                            timer_test.toc(restart=True)
-                        )
+                logger.info(
+                    '[{} x{}]\tPSNR: {:.3f} (Best: {:.3f} @epoch {} Time: {:.2f})'.format(
+                        d.dataset.name,
+                        scale,
+                        self.ckp.log[-1, idx_data, idx_scale],
+                        best_psnr,
+                        best[1][idx_data, idx_scale] + 1,
+                        timer_test.toc(restart=True)
                     )
+                )
+                self.ckp.write_log(
+                    '[{} x{}]\tPSNR: {:.3f} (Best: {:.3f} @epoch {})'.format(
+                        d.dataset.name,
+                        scale,
+                        self.ckp.log[-1, idx_data, idx_scale],
+                        best[0][idx_data, idx_scale],
+                        best[1][idx_data, idx_scale] + 1
+                    ), verbose=False
+                )
+
         if self.args.save_results:
             self.ckp.end_background()
 
@@ -274,7 +290,7 @@ class Trainer():
 
         torch.set_grad_enabled(True)
 
-        return OrderedDict([('psnr', best_psnr)])
+        return OrderedDict([('psnr', best_psnr.item())])
 
     def train_canvas(self, logger, search_mode = False, proxy_mode = False):
         # Single machine
@@ -336,8 +352,8 @@ class Trainer():
             # LR Scheduler is updated in train_one_epoch
 
             # Check NaN errors.
-            if math.isnan(eval_metrics['loss']) and self.args.forbid_eval_nan:
-                raise RuntimeError('NaN occurs during validation')
+            #if math.isnan(eval_metrics['loss']) and self.args.forbid_eval_nan:
+            #    raise RuntimeError('NaN occurs during validation')
             
             # Summary and checkpoint are saved in validate function
             

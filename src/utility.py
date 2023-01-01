@@ -50,8 +50,9 @@ class checkpoint():
 
         if not args.load:
             if not args.save:
-                args.save = now
-            self.dir = os.path.join('..', 'experiment', args.save)
+                self.dir = os.path.join('..', 'experiment', now)
+            else:
+                self.dir = os.path.join('..', 'experiment', args.save)
         else:
             self.dir = os.path.join('..', 'experiment', args.load)
             if os.path.exists(self.dir):
@@ -63,7 +64,7 @@ class checkpoint():
         if args.reset:
             os.system('rm -rf ' + self.dir)
             args.load = ''
-
+        print(f'Saving logs to {self.dir}...')
         os.makedirs(self.dir, exist_ok=True)
         os.makedirs(self.get_path('model'), exist_ok=True)
         for d in args.data_test:
@@ -105,8 +106,9 @@ class checkpoint():
     def add_log(self, log):
         self.log = torch.cat([self.log, log])
 
-    def write_log(self, log, refresh=False):
-        print(log)
+    def write_log(self, log, verbose=True, refresh=False):
+        if verbose:
+            print(log)
         self.log_file.write(log + '\n')
         if refresh:
             self.log_file.close()
